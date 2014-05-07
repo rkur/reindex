@@ -1,0 +1,135 @@
+USE [ax_molniya_test]
+GO
+/****** Объект:  StoredProcedure [dbo].[www_reindex_SalesTable]    Дата сценария: 05/07/2014 17:27:02 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Ruslan Kurianov
+-- Create date: 2014-05-07
+-- Description: Реиндекс таблицы SalesTable 	
+-- Version: 0.3
+-- =============================================
+CREATE PROCEDURE [dbo].[www_reindex_SalesTable] 
+	-- Add the parameters for the stored procedure here
+
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+-- дата выполнения реиндекс в формате ггггммдд
+declare @wjobday nvarchar(8)
+
+-- флаг выполнения задания
+declare @status bit
+
+declare @createindexstart nvarchar(128)
+declare @createindexerror nvarchar(128)
+declare @createindexstop nvarchar(128)
+declare @dropindex nvarchar(128)
+declare @dropindexerror nvarchar(128)
+declare @tablename nvarchar(128)
+declare @dbname nvarchar(64)
+declare @indexname nvarchar(256)
+declare @createindexcommand nvarchar(MAX)
+declare @dropindexcommand nvarchar(MAX)
+
+-- обнуляем флаг
+set @status = 0
+
+-- текущая дата
+set @wjobday = CONVERT(nvarchar(8),getdate(),112)
+
+set @tablename = 'SalesTable'
+set @dbname = 'ax_molniya_test'
+set @indexname = 'temp_index'
+
+set @createindexstart = 'Создание временного кластеризованного индекса на таблице dbo.'+@tablename+' начато '
+set @createindexerror  = '======ОШИБКА====== Создание временного кластеризованного индекса на таблице '+@tablename+' завершено, удаляем - ======ОШИБКА====== '
+set @createindexstop = 'Создание временного кластеризованного индекса на таблице dbo.'+@tablename+' завершено, удаляем '
+set @dropindex = 'Удаление временного кластеризованного индекса на таблице dbo.'+@tablename+' выполнено '
+set @dropindexerror = '======ОШИБКА====== Удаление временного кластеризованного индекса на таблице dbo.'+@tablename+' выполнено - ======ОШИБКА====== '
+set @createindexcommand = 'CREATE CLUSTERED INDEX ['+@indexname+'] ON [dbo].['+@tablename+']([RECID] ASC)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON);'
+set @dropindexcommand ='DROP INDEX ['+@indexname+'] ON [dbo].['+@tablename+'] WITH (ONLINE = ON);'
+
+
+begin
+-- смотрим состояние индексов до
+	SELECT * FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@tablename), NULL, NULL , 'LIMITED')
+
+-- пишем в лог, о начале перестройки индексов на таблице
+	exec www_reindex_stat_log 
+	@objectname = @tablename
+	,@description = @createindexstart
+	,@jobday = @wjobday 
+
+	PRINT @createindexstart + Cast(GETDATE() as varchar);
+end 
+
+
+-- пробуем создать временный кластерный индекс
+begin try
+ 
+EXEC sp_executesql @createindexcommand
+
+-- пишем в лог
+	exec www_reindex_stat_log 
+	@objectname = @tablename
+	,@description = @createindexstop
+	,@jobday = @wjobday
+
+	PRINT @createindexstop + Cast(GETDATE() as varchar);
+
+	set @status = 1
+end try
+BEGIN CATCH
+							SELECT
+								ERROR_NUMBER() AS ErrorNumber,
+								ERROR_SEVERITY() AS ErrorSeverity,
+								ERROR_STATE() AS ErrorState,
+								ERROR_PROCEDURE() AS ErrorProcedure,
+								ERROR_LINE() AS ErrorLine,
+								ERROR_MESSAGE() AS ErrorMessage; 
+
+	PRINT @createindexerror + Cast(GETDATE() as varchar);
+	set @status = 0
+END CATCH
+
+if (@status = 1)
+begin try
+
+	EXEC sp_executesql @dropindexcommand
+	 
+	exec www_reindex_stat_log 
+	@objectname = @tablename
+	,@description = @dropindex
+	,@jobday = @wjobday
+
+	PRINT @dropindex + Cast(GETDATE() as varchar);
+
+	set @status = 1
+
+end try
+BEGIN CATCH
+							SELECT
+								ERROR_NUMBER() AS ErrorNumber,
+								ERROR_SEVERITY() AS ErrorSeverity,
+								ERROR_STATE() AS ErrorState,
+								ERROR_PROCEDURE() AS ErrorProcedure,
+								ERROR_LINE() AS ErrorLine,
+								ERROR_MESSAGE() AS ErrorMessage; 
+
+	PRINT @dropindexerror + Cast(GETDATE() as varchar);
+	set @status = 0
+END CATCH
+
+	if (@status = 1)
+	begin 
+		SELECT * FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@tablename), NULL, NULL , 'LIMITED')
+	end
+
+END
+
