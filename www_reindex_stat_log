@@ -7,7 +7,7 @@ GO
 -- =============================================
 -- Author:		Ruslan Kurianov
 -- Create date: 2014-05-06
--- Description:	
+-- Description:	Логирование действий во время реиндекса
 -- =============================================
 CREATE PROCEDURE [dbo].[www_reindex_stat_log] 
 	-- Add the parameters for the stored procedure here
