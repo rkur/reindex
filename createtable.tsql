@@ -1,6 +1,5 @@
-USE [ax_nolniya]
+USE [ax_molniya]
 GO
-/****** Объект:  Table [dbo].[www_reindex_stat]    Дата сценария: 05/07/2014 13:33:52 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
