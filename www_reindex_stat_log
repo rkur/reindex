@@ -1,0 +1,29 @@
+USE [ax_molniya]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Ruslan Kurianov
+-- Create date: 2014-05-06
+-- Description:	
+-- =============================================
+CREATE PROCEDURE [dbo].[www_reindex_stat_log] 
+	-- Add the parameters for the stored procedure here
+@objectname nvarchar(128)
+,@description nvarchar(256)
+,@jobday nvarchar(8)
+
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+    -- Insert statements for procedure here
+
+  insert into dbo.www_reindex_stat([objectname],[description],[jobday])
+  values(@objectname,@description,@jobday)
+ 
+END
