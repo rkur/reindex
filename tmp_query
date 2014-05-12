@@ -1,5 +1,11 @@
 declare @jobday nvarchar(8)
+declare @objectname nvarchar(128)
+declare @status nvarchar(10)
+
+set @objectname = 'SalesTable'
+set @status = 'before'
 set @jobday = CONVERT(nvarchar(8),getdate(),112)
+
 insert into www_reindex_stat_index_all(
 	[database_id],
 	[object_id],
@@ -21,7 +27,9 @@ insert into www_reindex_stat_index_all(
 	[max_record_size_in_bytes],
 	[avg_record_size_in_bytes] ,
 	[forwarded_record_count] ,	
-	[jobday]
+	[jobday],
+	[objectname],
+	[status]
 )
 SELECT  [database_id],
 	[object_id],
@@ -43,6 +51,11 @@ SELECT  [database_id],
 	[max_record_size_in_bytes],
 	[avg_record_size_in_bytes] ,
 	[forwarded_record_count] ,	
-	@jobday as [jobday]
+	@jobday as [jobday],
+	@objectname as [objectname],
+	@status as [status]
 FROM sys.dm_db_index_physical_stats(DB_ID('ax_molniya_test'), OBJECT_ID('SalesTable'), NULL, NULL , 'LIMITED');
 GO
+
+
+select * from www_reindex_stat_index_all
