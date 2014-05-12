@@ -1,0 +1,77 @@
+USE [ax_molniya]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+-- =============================================
+-- Author:		Ruslan Kurianov
+-- Create date: 2014-05-12
+-- Description:	
+-- =============================================
+CREATE PROCEDURE [dbo].[www_reindex_stat_log_index_all] 
+	-- Add the parameters for the stored procedure here
+@objectname nvarchar(128)
+,@jobday nvarchar(8)
+,@status nvarchar(10)
+,@dbname nvarchar(64)
+
+AS
+BEGIN
+	-- SET NOCOUNT ON added to prevent extra result sets from
+	-- interfering with SELECT statements.
+	SET NOCOUNT ON;
+
+    -- Insert statements for procedure here
+insert into www_reindex_stat_index_all(
+	[database_id],
+	[object_id],
+	[index_id] ,
+	[partition_number],
+	[index_type_desc],
+	[alloc_unit_type_desc],
+	[index_depth],
+	[index_level] ,
+	[avg_fragmentation_in_percent],
+	[fragment_count],
+	[avg_fragment_size_in_pages],
+	[page_count],
+	[avg_page_space_used_in_percent] ,
+	[record_count],
+	[ghost_record_count] ,
+	[version_ghost_record_count],
+	[min_record_size_in_bytes],
+	[max_record_size_in_bytes],
+	[avg_record_size_in_bytes] ,
+	[forwarded_record_count] ,	
+	[jobday],
+	[objectname],
+	[status]
+)
+SELECT  [database_id],
+	[object_id],
+	[index_id] ,
+	[partition_number],
+	[index_type_desc],
+	[alloc_unit_type_desc],
+	[index_depth],
+	[index_level] ,
+	[avg_fragmentation_in_percent],
+	[fragment_count],
+	[avg_fragment_size_in_pages],
+	[page_count],
+	[avg_page_space_used_in_percent] ,
+	[record_count],
+	[ghost_record_count] ,
+	[version_ghost_record_count],
+	[min_record_size_in_bytes],
+	[max_record_size_in_bytes],
+	[avg_record_size_in_bytes] ,
+	[forwarded_record_count] ,	
+	@jobday as [jobday],
+	@objectname as [objectname],
+	@status as [status]
+FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@objectname), NULL, NULL , 'LIMITED');
+
+ 
+END
