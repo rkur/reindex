@@ -8,7 +8,7 @@ GO
 -- =============================================
 -- Author:		Ruslan Kurianov
 -- Create date: 2014-05-07
--- Description: Реиндекс таблицы PRODTABLE
+-- Description: Реиндекс таблицы VENDSETTLEMENT
 -- Version: 0.4
 -- =============================================
 ALTER PROCEDURE [dbo].[www_reindex_PRODTABLE] 
@@ -45,11 +45,11 @@ set @wjobday = CONVERT(nvarchar(8),getdate(),112)
 
 /* -------------------#CONFIG---------------------------*/
 -- имя таблицы
-set @tablename = 'PRODTABLE'
+set @tablename = 'VENDTRANS'
 -- имя базы данных
 set @dbname = 'ax_molniya_test'
 -- имя индекса
-set @indexname = 'I_262PRODIDX'
+set @indexname = 'I_506ACCOUNTDATEIDX'
 /* -------------------#END CONFIG------------------------*/
 
 --------------------------------------------------------------------
@@ -58,21 +58,23 @@ set @createindexerror  = '======ОШИБКА====== Создание времен
 set @createindexstop = 'Создание временного кластеризованного индекса на таблице dbo.'+@tablename+' завершено, удаляем '
 set @dropindex = 'Удаление временного кластеризованного индекса на таблице dbo.'+@tablename+' выполнено '
 set @dropindexerror = '======ОШИБКА====== Удаление временного кластеризованного индекса на таблице dbo.'+@tablename+' выполнено - ======ОШИБКА====== '
---set @createindexcommand = 'CREATE CLUSTERED INDEX ['+@indexname+'] ON [dbo].['+@tablename+']([RECID] ASC)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON);'
-set @createindexcommand  = 'ALTER TABLE [dbo].['+@tablename+'] ADD  CONSTRAINT ['+@indexname+'] PRIMARY KEY CLUSTERED ([DATAAREAID] ASC,[PRODID] ASC) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]'
---set @dropindexcommand ='DROP INDEX ['+@indexname+'] ON [dbo].['+@tablename+'] WITH (ONLINE = ON);'
-set @dropindexcommand ='ALTER TABLE [dbo].['+@tablename+'] DROP CONSTRAINT ['+@indexname+']'
+set @createindexcommand = 'CREATE CLUSTERED INDEX ['+@indexname+'] ON [dbo].['+@tablename+']([DATAAREAID] ASC,[ACCOUNTNUM] ASC,[TRANSDATE] ASC,[VOUCHER] ASC,[TRANSTYPE] ASC)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON);'
+--set @createindexcommand  = 'ALTER TABLE [dbo].['+@tablename+'] ADD  CONSTRAINT ['+@indexname+'] PRIMARY KEY CLUSTERED ([DATAAREAID] ASC,[PRODID] ASC) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]'
+set @dropindexcommand ='DROP INDEX ['+@indexname+'] ON [dbo].['+@tablename+'] WITH (ONLINE = ON);'
+--set @dropindexcommand ='ALTER TABLE [dbo].['+@tablename+'] DROP CONSTRAINT ['+@indexname+']'
 ---------------------------------------------------------------------
 
 -- проверка входных параметров
 if ((select count(name) from sys.databases where [name] = @dbname)= 0)
 BEGIN
-			print 'указанной бд на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_'+@tablename+']'
+			print 'указанной бд ['+@dbname+'] на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_'+@tablename+']'
 			print ' '
 END
 ELSE
 BEGIN
 	print 'Дата проведения реиндекса '+ @wjobday
+	print '--------------------------------------------------'
+	print ''	
 	print 'Имя базы данных-> '+@dbname
 	print 'Имя индекса ->'+ @indexname
 	print 'Имя таблицы ->'+@tablename
@@ -188,8 +190,8 @@ BEGIN
 					RAISERROR ('', 0, 1) WITH NOWAIT 
 				--ставим флаг
 					set @flag = 1
-					end try
-					BEGIN CATCH
+				end try
+				BEGIN CATCH
 						SELECT
 							ERROR_NUMBER() AS ErrorNumber,
 							ERROR_SEVERITY() AS ErrorSeverity,
@@ -203,7 +205,7 @@ BEGIN
 						PRINT @createindexerror + Cast(GETDATE() as varchar);
 						-- ставим флаг
 						set @flag = 0
-					 END CATCH
+				END CATCH
 		/*------------создание индекса конец--------------*/
 
 
@@ -231,6 +233,8 @@ BEGIN
 					,@jobday = @wjobday
 					,@status = 'after'
 					,@dbname = @dbname	
+
+				set @flag = 1
 				end try
 				begin catch
 					SELECT
@@ -241,9 +245,29 @@ BEGIN
 						ERROR_LINE() AS ErrorLine,
 						ERROR_MESSAGE() AS ErrorMessage,
 						'шаг 4 ошибка вставки данных в таблицы лога';
-				end catch
 
+				set @flag = 0
+				end catch
+				
 			END
+
+			if (@flag = 1)
+				BEGIN				
+					SELECT t1.[index_id]
+						  ,t1.[index_type_desc]
+						  ,t1.[avg_fragmentation_in_percent] 
+						  ,t2.[avg_fragmentation_in_percent]
+						  ,t1.[avg_fragmentation_in_percent] -t2.[avg_fragmentation_in_percent] as [profit]		     
+					FROM [ax_molniya_test].[dbo].[www_reindex_stat_index_all] t1
+					full outer join [www_reindex_stat_index_all] t2 on t1.index_id = t2.index_id
+					where t1.objectname=@tablename 
+					and t1.jobday = @wjobday 
+					and t1.status = 'before' 
+					and t2.status = 'after' 
+					and t2.objectname=@tablename
+					and t2.jobday = @wjobday
+
+				END
 /*
 
 шаг 4 конец
