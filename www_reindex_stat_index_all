@@ -28,5 +28,7 @@ CREATE TABLE [dbo].[www_reindex_stat_index_all](
 	[forwarded_record_count] [bigint] NULL,
 	[createdate] [datetime] NOT NULL DEFAULT (getdate()),
 	[createdate_unix] [int] NOT NULL DEFAULT (datediff(second,'1970-01-01 00:00:00',getutcdate())),
-	[jobday] [nvarchar](8) NOT NULL
+	[jobday] [nvarchar](8) NOT NULL,
+	[objectname] nvarchar(128) null,
+	[status] nvarchar(10) null
 ) ON [PRIMARY]
