@@ -9,7 +9,7 @@ GO
 -- Create date: 2014-05-12
 -- Description:	
 -- =============================================
-CREATE PROCEDURE [dbo].[www_reindex_stat_log_index_all] 
+CREATE PROCEDURE [dbo].[www_reindex_stat_index_all_log] 
 	-- Add the parameters for the stored procedure here
 @objectname nvarchar(128)
 ,@jobday nvarchar(8)
