@@ -1,0 +1,48 @@
+declare @jobday nvarchar(8)
+set @jobday = CONVERT(nvarchar(8),getdate(),112)
+insert into www_reindex_stat_index_all(
+	[database_id],
+	[object_id],
+	[index_id] ,
+	[partition_number],
+	[index_type_desc],
+	[alloc_unit_type_desc],
+	[index_depth],
+	[index_level] ,
+	[avg_fragmentation_in_percent],
+	[fragment_count],
+	[avg_fragment_size_in_pages],
+	[page_count],
+	[avg_page_space_used_in_percent] ,
+	[record_count],
+	[ghost_record_count] ,
+	[version_ghost_record_count],
+	[min_record_size_in_bytes],
+	[max_record_size_in_bytes],
+	[avg_record_size_in_bytes] ,
+	[forwarded_record_count] ,	
+	[jobday]
+)
+SELECT  [database_id],
+	[object_id],
+	[index_id] ,
+	[partition_number],
+	[index_type_desc],
+	[alloc_unit_type_desc],
+	[index_depth],
+	[index_level] ,
+	[avg_fragmentation_in_percent],
+	[fragment_count],
+	[avg_fragment_size_in_pages],
+	[page_count],
+	[avg_page_space_used_in_percent] ,
+	[record_count],
+	[ghost_record_count] ,
+	[version_ghost_record_count],
+	[min_record_size_in_bytes],
+	[max_record_size_in_bytes],
+	[avg_record_size_in_bytes] ,
+	[forwarded_record_count] ,	
+	@jobday as [jobday]
+FROM sys.dm_db_index_physical_stats(DB_ID('ax_molniya_test'), OBJECT_ID('SalesTable'), NULL, NULL , 'LIMITED');
+GO
