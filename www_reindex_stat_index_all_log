@@ -1,6 +1,6 @@
 USE [ax_molniya_test]
 GO
-/****** Объект:  StoredProcedure [dbo].[www_reindex_stat_index_all_log]    Дата сценария: 05/13/2014 13:20:13 ******/
+/****** Объект:  StoredProcedure [dbo].[www_reindex_stat_index_all_log]    Дата сценария: 05/13/2014 15:54:00 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -9,73 +9,105 @@ GO
 -- Author:		Ruslan Kurianov
 -- Create date: 2014-05-12
 -- Description:	
+-- Version: 0.2
 -- =============================================
 CREATE PROCEDURE [dbo].[www_reindex_stat_index_all_log] 
 	-- Add the parameters for the stored procedure here
 @objectname nvarchar(128)
-,@jobday nvarchar(8)
-,@status nvarchar(10)
+,@jobday nvarchar(8) = ''
+,@status nvarchar(10) = 'before'
 ,@dbname nvarchar(64)
-,@seckey nvarchar(12)
+,@seckey nvarchar(12) = ''
+,@readonly bit = 0
 
 AS
 BEGIN
 	-- SET NOCOUNT ON added to prevent extra result sets from
 	-- interfering with SELECT statements.
 	SET NOCOUNT ON;
+IF(@readonly = 0)
+	BEGIN
+		insert into www_reindex_stat_index_all(
+			[database_id],
+			[object_id],
+			[index_id] ,
+			[partition_number],
+			[index_type_desc],
+			[alloc_unit_type_desc],
+			[index_depth],
+			[index_level] ,
+			[avg_fragmentation_in_percent],
+			[fragment_count],
+			[avg_fragment_size_in_pages],
+			[page_count],
+			[avg_page_space_used_in_percent] ,
+			[record_count],
+			[ghost_record_count] ,
+			[version_ghost_record_count],
+			[min_record_size_in_bytes],
+			[max_record_size_in_bytes],
+			[avg_record_size_in_bytes] ,
+			[forwarded_record_count] ,	
+			[jobday],
+			[objectname],
+			[status],
+			[seckey]
+		)
+		SELECT  [database_id],
+			[object_id],
+			[index_id] ,
+			[partition_number],
+			[index_type_desc],
+			[alloc_unit_type_desc],
+			[index_depth],
+			[index_level] ,
+			[avg_fragmentation_in_percent],
+			[fragment_count],
+			[avg_fragment_size_in_pages],
+			[page_count],
+			[avg_page_space_used_in_percent] ,
+			[record_count],
+			[ghost_record_count] ,
+			[version_ghost_record_count],
+			[min_record_size_in_bytes],
+			[max_record_size_in_bytes],
+			[avg_record_size_in_bytes] ,
+			[forwarded_record_count] ,	
+			@jobday as [jobday],
+			@objectname as [objectname],
+			@status as [status],
+			@seckey as [seckey]
+		FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@objectname), NULL, NULL , 'LIMITED');
+	END
+ELSE
+	BEGIN
+		SELECT  
+			[database_id],
+			@objectname as [objectname],
+			[object_id],
+			[index_id] ,
+			[partition_number],
+			[index_type_desc],
+			[alloc_unit_type_desc],
+			[index_depth],
+			[index_level] ,
+			[avg_fragmentation_in_percent],
+			[fragment_count],
+			[avg_fragment_size_in_pages],
+			[page_count],
+			[avg_page_space_used_in_percent] ,
+			[record_count],
+			[ghost_record_count] ,
+			[version_ghost_record_count],
+			[min_record_size_in_bytes],
+			[max_record_size_in_bytes],
+			[avg_record_size_in_bytes] ,
+			[forwarded_record_count]			
+		FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@objectname), NULL, NULL , 'LIMITED');
+	END
+
 
     -- Insert statements for procedure here
-insert into www_reindex_stat_index_all(
-	[database_id],
-	[object_id],
-	[index_id] ,
-	[partition_number],
-	[index_type_desc],
-	[alloc_unit_type_desc],
-	[index_depth],
-	[index_level] ,
-	[avg_fragmentation_in_percent],
-	[fragment_count],
-	[avg_fragment_size_in_pages],
-	[page_count],
-	[avg_page_space_used_in_percent] ,
-	[record_count],
-	[ghost_record_count] ,
-	[version_ghost_record_count],
-	[min_record_size_in_bytes],
-	[max_record_size_in_bytes],
-	[avg_record_size_in_bytes] ,
-	[forwarded_record_count] ,	
-	[jobday],
-	[objectname],
-	[status],
-	[seckey]
-)
-SELECT  [database_id],
-	[object_id],
-	[index_id] ,
-	[partition_number],
-	[index_type_desc],
-	[alloc_unit_type_desc],
-	[index_depth],
-	[index_level] ,
-	[avg_fragmentation_in_percent],
-	[fragment_count],
-	[avg_fragment_size_in_pages],
-	[page_count],
-	[avg_page_space_used_in_percent] ,
-	[record_count],
-	[ghost_record_count] ,
-	[version_ghost_record_count],
-	[min_record_size_in_bytes],
-	[max_record_size_in_bytes],
-	[avg_record_size_in_bytes] ,
-	[forwarded_record_count] ,	
-	@jobday as [jobday],
-	@objectname as [objectname],
-	@status as [status],
-	@seckey as [seckey]
-FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@objectname), NULL, NULL , 'LIMITED');
 
  
 END
