@@ -20,7 +20,10 @@ reindex
 //preparation
 
   create table www_reindex_stat
+  create table www_reindex_stat_index_all_log
+  
   create www_reindex_stat_log
+  create www_reindex_stat_index_all_log
   
   create www_reindex_InventSum
   create www_reindex_SalesTable
@@ -46,5 +49,5 @@ reindex
   use ax_molniya
   GO
   select * from www_reindex_stat
-  
+    select * from www_reindex_stat_index_all
   
