@@ -1,5 +1,6 @@
-USE [ax_molniya]
+USE [ax_molniya_test]
 GO
+/****** Объект:  Table [dbo].[www_reindex_stat]    Дата сценария: 05/13/2014 12:37:52 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -10,5 +11,6 @@ CREATE TABLE [dbo].[www_reindex_stat](
 	[createdate_unix] [int] NOT NULL DEFAULT (datediff(second,'1970-01-01 00:00:00',getutcdate())),
 	[objectname] [nvarchar](128) NULL,
 	[description] [nvarchar](256) NULL,
-	[jobday] [nvarchar](8) NOT NULL
+	[jobday] [nvarchar](8) NOT NULL,
+	[seckey] [nvarchar](12) NOT NULL
 ) ON [PRIMARY]
