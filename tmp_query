@@ -6,12 +6,12 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 -- =============================================
--- Author:		Ruslan Kurianov
+-- Author:  	Ruslan Kurianov
 -- Create date: 2014-05-07
 -- Description: Реиндекс таблицы PURCHTABLE
 -- Version: 0.4
 -- =============================================
-ALTER PROCEDURE [dbo].[www_reindex_PRODTABLE] 
+ALTER PROCEDURE [dbo].[www_reindex_PRODTABLE]
 -- Add the parameters for the stored procedure here
 
 -- если readonly = 0 (значение по- умолчанию), тогда выполняется вся работа скрипта)
@@ -24,373 +24,370 @@ ALTER PROCEDURE [dbo].[www_reindex_PRODTABLE]
 
 AS
 BEGIN
-	-- SET NOCOUNT ON added to prevent extra result sets from
-	-- interfering with SELECT statements.
-	SET NOCOUNT ON;
+  -- SET NOCOUNT ON added to prevent extra result sets from
+  -- interfering with SELECT statements.
+  SET NOCOUNT ON;
 
--- дата выполнения реиндекс в формате ггггммдд
-declare @wjobday nvarchar(8)
--- hash password
-declare @adminhash varbinary 
-declare @hashpassword varbinary
--- ключ для выборки данных
-declare @seckey nvarchar(12)
--- текущее время чч:мм
-declare @b nvarchar(5)
--- два правых символа от @b
-declare @c nvarchar(2)
--- два левых символа от @b
-declare @d nvarchar(2)
+  -- дата выполнения реиндекс в формате ггггммдд
+  DECLARE @wjobday nvarchar(8)
+  -- hash password
+  DECLARE @adminhash varbinary
+  DECLARE @hashpassword varbinary
+  -- ключ для выборки данных
+  DECLARE @seckey nvarchar(12)
+  -- текущее время чч:мм
+  DECLARE @b nvarchar(5)
+  -- два правых символа от @b
+  DECLARE @c nvarchar(2)
+  -- два левых символа от @b
+  DECLARE @d nvarchar(2)
 
--- флаг выполнения задания
-declare @flag bit
+  -- флаг выполнения задания
+  DECLARE @flag bit
 
-declare @createindexstart nvarchar(128)
-declare @createindexerror nvarchar(128)
-declare @createindexstop nvarchar(128)
-declare @dropindex nvarchar(128)
-declare @dropindexerror nvarchar(128)
-declare @tablename nvarchar(128)
-declare @dbname nvarchar(64)
-declare @indexname nvarchar(256)
-declare @createindexcommand nvarchar(MAX)
-declare @dropindexcommand nvarchar(MAX)
-declare @errmes nvarchar(512)
--- получаем соль пароля
-set @password = CONVERT(nvarchar,@password);
-set @hashpassword = (SELECT HashBytes('MD5', @password));
--- обнуляем флаг
-set @flag = 0
+  DECLARE @createindexstart nvarchar(128)
+  DECLARE @createindexerror nvarchar(128)
+  DECLARE @createindexstop nvarchar(128)
+  DECLARE @dropindex nvarchar(128)
+  DECLARE @dropindexerror nvarchar(128)
+  DECLARE @tablename nvarchar(128)
+  DECLARE @dbname nvarchar(64)
+  DECLARE @indexname nvarchar(256)
+  DECLARE @createindexcommand nvarchar(max)
+  DECLARE @dropindexcommand nvarchar(max)
+  DECLARE @errmes nvarchar(512)
+  -- получаем соль пароля
+  SET @password = CONVERT(nvarchar, @password);
+  SET @hashpassword = (SELECT
+    HASHBYTES('MD5', @password));
+  -- обнуляем флаг
+  SET @flag = 0
 
--- текущая дата
-set @wjobday = CONVERT(nvarchar(8),getdate(),112)
-set @b = (select CONVERT(nvarchar(5), GETDATE(), 108)) 
-set @c = RIGHT(@b,2)
-set @d = LEFT(@b,2)
--- получаем значение seckey
-set @seckey = @wjobday+@d+@c
+  -- текущая дата
+  SET @wjobday = CONVERT(nvarchar(8), GETDATE(), 112)
+  SET @b = (SELECT
+    CONVERT(nvarchar(5), GETDATE(), 108))
+  SET @c = RIGHT(@b, 2)
+  SET @d = LEFT(@b, 2)
+  -- получаем значение seckey
+  SET @seckey = @wjobday + @d + @c
 
-/*
+  /*
+  
+  --------------------#CONFIG---------------------------
+  секция с настройками скрипта, необходимо обязательно
+  заполнить(проверить) перед запуском
+  
+  */
 
---------------------#CONFIG---------------------------
-секция с настройками скрипта, необходимо обязательно
-заполнить(проверить) перед запуском
+  -- имя базы данных
+  SET @dbname = 'ax_molniya_test'
+  -- имя таблицы
+  SET @tablename = 'INVENTSUM'
+  -- имя индекса
+  SET @indexname = 'I_506ACCOUNTDATEIDX'
+  -- соль пароля на запуск скрипта,НЕ ТРОГАТЬ если не знаешь,что это
+  SET @adminhash = 0xDA89C0899BDF534641BB41C0A2A23643
+  -- имя задания
+  --set @jobname = ''
+  -- email для уведомления
+  -- set @email = ''
 
-*/
+  /*
+  
+   -------------------#END CONFIG------------------------
+  
+  */
 
--- имя базы данных
-set @dbname = 'ax_molniya_test'
--- имя таблицы
-set @tablename = 'INVENTSUM'
--- имя индекса
-set @indexname = 'I_506ACCOUNTDATEIDX'
--- соль пароля на запуск скрипта,НЕ ТРОГАТЬ если не знаешь,что это
-set @adminhash = 0xDA89C0899BDF534641BB41C0A2A23643
--- имя задания
---set @jobname = ''
--- email для уведомления
--- set @email = ''
+  --------------------------------------------------------------------
+  SET @createindexstart = 'Создание временного кластеризованного индекса на таблице dbo.' + @tablename + ' начато '
+  SET @createindexerror = '======ОШИБКА====== Создание временного кластеризованного индекса на таблице ' + @tablename + ' ======ОШИБКА====== '
+  SET @createindexstop = 'Создание временного кластеризованного индекса на таблице dbo.' + @tablename + ' завершено, удаляем '
+  SET @dropindex = 'Удаление временного кластеризованного индекса на таблице dbo.' + @tablename + ' выполнено '
+  SET @dropindexerror = '======ОШИБКА====== Удаление временного кластеризованного индекса на таблице dbo.' + @tablename + ' ======ОШИБКА====== '
+  SET @createindexcommand = 'CREATE CLUSTERED INDEX [' + @indexname + '] ON [dbo].[' + @tablename + ']([DATAAREAID] ASC)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON);'
+  --set @createindexcommand  = 'ALTER TABLE [dbo].['+@tablename+'] ADD  CONSTRAINT ['+@indexname+'] PRIMARY KEY CLUSTERED ([DATAAREAID] ASC,[PRODID] ASC) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]'
+  SET @dropindexcommand = 'DROP INDEX [' + @indexname + '] ON [dbo].[' + @tablename + '] WITH (ONLINE = ON);'
+  --set @dropindexcommand ='ALTER TABLE [dbo].['+@tablename+'] DROP CONSTRAINT ['+@indexname+']'
+  ---------------------------------------------------------------------
 
-/*
+  -- проверка входных параметров
+  IF ((SELECT
+      COUNT(name)
+    FROM sys.databases
+    WHERE [name] = @dbname)
+    = 0)
+  BEGIN
+    PRINT 'указанной бд [' + @dbname + '] на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_' + @tablename + ']'
+    PRINT ' '
+  END
+  ELSE
+  BEGIN
+    IF (@hashpassword <> @adminhash)
+    BEGIN
+      PRINT '--------------------------------------------------'
+      PRINT ''
+      PRINT 'ОШИБКА - введен не правильный пароль - ОШИБКА'
+      PRINT ''
+      PRINT '--------------------------------------------------'
+    END
+    ELSE
+    BEGIN
+      IF (@readonly = 1)
+      BEGIN
+        PRINT 'Дата проведения операция ' + @wjobday
+        PRINT '--------------------------------------------------'
+        PRINT ''
+        PRINT 'Имя базы данных-> ' + @dbname
+        PRINT 'Имя индекса ->' + @indexname
+        PRINT 'Имя таблицы ->' + @tablename
+        PRINT ''
+        PRINT '--------------------------------------------------'
 
- -------------------#END CONFIG------------------------
+        -- смотрим статистику по индексам таблицы
+        EXEC www_reindex_stat_index_all_log @objectname = @tablename,
+                                            @dbname = @dbname,
+                                            @readonly = @readonly
 
-*/
+      END
+      ELSE
+      BEGIN
+        PRINT 'Дата проведения реиндекса ' + @wjobday
+        PRINT '--------------------------------------------------'
+        PRINT ''
+        PRINT 'Имя базы данных-> ' + @dbname
+        PRINT 'Имя индекса ->' + @indexname
+        PRINT 'Имя таблицы ->' + @tablename
+        PRINT ''
+        PRINT '--------------------------------------------------'
 
---------------------------------------------------------------------
-set @createindexstart = 'Создание временного кластеризованного индекса на таблице dbo.'+@tablename+' начато '
-set @createindexerror  = '======ОШИБКА====== Создание временного кластеризованного индекса на таблице '+@tablename+' ======ОШИБКА====== '
-set @createindexstop = 'Создание временного кластеризованного индекса на таблице dbo.'+@tablename+' завершено, удаляем '
-set @dropindex = 'Удаление временного кластеризованного индекса на таблице dbo.'+@tablename+' выполнено '
-set @dropindexerror = '======ОШИБКА====== Удаление временного кластеризованного индекса на таблице dbo.'+@tablename+' ======ОШИБКА====== '
-set @createindexcommand = 'CREATE CLUSTERED INDEX ['+@indexname+'] ON [dbo].['+@tablename+']([DATAAREAID] ASC)WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON);'
---set @createindexcommand  = 'ALTER TABLE [dbo].['+@tablename+'] ADD  CONSTRAINT ['+@indexname+'] PRIMARY KEY CLUSTERED ([DATAAREAID] ASC,[PRODID] ASC) WITH (PAD_INDEX  = OFF, STATISTICS_NORECOMPUTE  = OFF, SORT_IN_TEMPDB = ON, IGNORE_DUP_KEY = OFF, ONLINE = ON, ALLOW_ROW_LOCKS  = ON, ALLOW_PAGE_LOCKS  = ON) ON [PRIMARY]'
-set @dropindexcommand ='DROP INDEX ['+@indexname+'] ON [dbo].['+@tablename+'] WITH (ONLINE = ON);'
---set @dropindexcommand ='ALTER TABLE [dbo].['+@tablename+'] DROP CONSTRAINT ['+@indexname+']'
----------------------------------------------------------------------
+      /*
+      
+      шаг 1
+      
+      */
+      BEGIN TRY
+        -----------------------------------------------------
+        -- смотрим состояние индексов до
+        EXEC www_reindex_stat_index_all_log @objectname = @tablename,
+                                            @jobday = @wjobday,
+                                            @status = 'before',
+                                            @dbname = @dbname,
+                                            @seckey = @seckey
 
--- проверка входных параметров
-if ((select count(name) from sys.databases where [name] = @dbname)= 0)
-BEGIN
-			print 'указанной бд ['+@dbname+'] на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_'+@tablename+']'
-			print ' '
-END
-ELSE
-BEGIN
-	IF(@hashpassword <> @adminhash)
-		BEGIN
-			print '--------------------------------------------------'
-			print ''
-			print 'ОШИБКА - введен не правильный пароль - ОШИБКА'
-			print ''
-			print '--------------------------------------------------'
-		END
-		ELSE
-		BEGIN
-			IF(@readonly = 1)
-			BEGIN
-				print 'Дата проведения операция '+ @wjobday
-				print '--------------------------------------------------'
-				print ''	
-				print 'Имя базы данных-> '+@dbname
-				print 'Имя индекса ->'+ @indexname
-				print 'Имя таблицы ->'+@tablename
-				print ''
-				print '--------------------------------------------------'
+        PRINT @createindexstart + CAST(GETDATE() AS varchar);
+        RAISERROR ('', 0, 1) WITH NOWAIT
 
-				-- смотрим статистику по индексам таблицы
-				exec www_reindex_stat_index_all_log
-				@objectname = @tablename		
-				,@dbname = @dbname		
-				,@readonly = @readonly	
+        -- пишем в лог, о начале перестройки индексов на таблице
+        EXEC www_reindex_stat_log @objectname = @tablename,
+                                  @description = @createindexstart,
+                                  @jobday = @wjobday,
+                                  @seckey = @seckey
 
-			END
-			ELSE
-			BEGIN
-				print 'Дата проведения реиндекса '+ @wjobday
-				print '--------------------------------------------------'
-				print ''	
-				print 'Имя базы данных-> '+@dbname
-				print 'Имя индекса ->'+ @indexname
-				print 'Имя таблицы ->'+@tablename
-				print ''
-				print '--------------------------------------------------'
+      END TRY
+      BEGIN CATCH
+        SELECT
+          ERROR_NUMBER() AS ErrorNumber,
+          ERROR_SEVERITY() AS ErrorSeverity,
+          ERROR_STATE() AS ErrorState,
+          ERROR_PROCEDURE() AS ErrorProcedure,
+          ERROR_LINE() AS ErrorLine,
+          ERROR_MESSAGE() AS ErrorMessage,
+          'шаг 1 ошибка вставки данных в таблицы лога';
 
-/*
+        SET @errmes = 'шаг 1 ошибка вставки данных в таблицы лога - ' + ERROR_MESSAGE()
+        EXEC www_reindex_stat_log @objectname = @tablename,
+                                  @description = @errmes,
+                                  @jobday = @wjobday,
+                                  @seckey = @seckey
 
-шаг 1
+      END CATCH
+      -----------------------------------------------------
 
-*/
-	BEGIN TRY		
-		-----------------------------------------------------
-		-- смотрим состояние индексов до
-		exec www_reindex_stat_index_all_log
-		@objectname = @tablename
-		,@jobday = @wjobday
-		,@status = 'before'
-		,@dbname = @dbname
-		,@seckey = @seckey
+      /*
+      
+      шаг 1 конец
+      
+      */
 
-		PRINT @createindexstart + Cast(GETDATE() as varchar);
-		RAISERROR ('', 0, 1) WITH NOWAIT 
+      /*
+      
+      шаг 2
+      
+      */
 
-		-- пишем в лог, о начале перестройки индексов на таблице
-			exec www_reindex_stat_log 
-			@objectname = @tablename
-			,@description = @createindexstart
-			,@jobday = @wjobday 
-			,@seckey = @seckey
+      /*------------создание индекса начало--------------*/
+      BEGIN TRY
+        EXEC sp_executesql @createindexcommand
+        -- пишем в лог
+        EXEC www_reindex_stat_log @objectname = @tablename,
+                                  @description = @createindexstop,
+                                  @jobday = @wjobday,
+                                  @seckey = @seckey
+        -- выводим на экран
+        PRINT @createindexstop + CAST(GETDATE() AS varchar);
+        RAISERROR ('', 0, 1) WITH NOWAIT
+        --ставим флаг
+        SET @flag = 1
+      END TRY
+      BEGIN CATCH
+        SELECT
+          ERROR_NUMBER() AS ErrorNumber,
+          ERROR_SEVERITY() AS ErrorSeverity,
+          ERROR_STATE() AS ErrorState,
+          ERROR_PROCEDURE() AS ErrorProcedure,
+          ERROR_LINE() AS ErrorLine,
+          ERROR_MESSAGE() AS ErrorMessage,
+          'ошибка при создании индекса';
 
-		END TRY
-		BEGIN CATCH
-			SELECT
-				ERROR_NUMBER() AS ErrorNumber,
-				ERROR_SEVERITY() AS ErrorSeverity,
-				ERROR_STATE() AS ErrorState,
-				ERROR_PROCEDURE() AS ErrorProcedure,
-				ERROR_LINE() AS ErrorLine,
-				ERROR_MESSAGE() AS ErrorMessage,
-				'шаг 1 ошибка вставки данных в таблицы лога';
+        SET @errmes = 'ошибка при создании индекса- ' + ERROR_MESSAGE()
+        EXEC www_reindex_stat_log @objectname = @tablename,
+                                  @description = @errmes,
+                                  @jobday = @wjobday,
+                                  @seckey = @seckey
 
-			set @errmes = 'шаг 1 ошибка вставки данных в таблицы лога - '+ERROR_MESSAGE()
-			exec www_reindex_stat_log 
-				@objectname = @tablename
-				,@description = @errmes
-				,@jobday = @wjobday 
-				,@seckey = @seckey
-
-		END CATCH	
-		-----------------------------------------------------
-
-/*
-
-шаг 1 конец
-
-*/
-
-/*
-
-шаг 2
-
-*/
-
-/*------------создание индекса начало--------------*/
-				begin try 
-					EXEC sp_executesql @createindexcommand
-				-- пишем в лог
-					exec www_reindex_stat_log 
-					@objectname = @tablename
-					,@description = @createindexstop
-					,@jobday = @wjobday
-					,@seckey = @seckey
-				-- выводим на экран
-					PRINT @createindexstop + Cast(GETDATE() as varchar);
-					RAISERROR ('', 0, 1) WITH NOWAIT 
-				--ставим флаг
-					set @flag = 1
-				end try
-				BEGIN CATCH
-						SELECT
-							ERROR_NUMBER() AS ErrorNumber,
-							ERROR_SEVERITY() AS ErrorSeverity,
-							ERROR_STATE() AS ErrorState,
-							ERROR_PROCEDURE() AS ErrorProcedure,
-							ERROR_LINE() AS ErrorLine,
-							ERROR_MESSAGE() AS ErrorMessage,
-							'ошибка при создании индекса';  
-
-						set @errmes = 'ошибка при создании индекса- '+ERROR_MESSAGE()
-						exec www_reindex_stat_log 
-							@objectname = @tablename
-							,@description = @errmes
-							,@jobday = @wjobday 
-							,@seckey = @seckey
-
-						-- выводим на экран, если не получилось
-						PRINT @createindexerror + Cast(GETDATE() as varchar);
-						-- ставим флаг
-						set @flag = 0
-				END CATCH
-/*------------создание индекса конец--------------*/
-
-
-/*
-
-шаг 2 конец
-
-*/
-
-/*
-
-шаг 3
-
-*/
-		-- если предыдущее действие завершилось успешно,то делаем следующий шаг
-		if (@flag = 1)
-			BEGIN
-
-/*------------удаление индекса начало--------------*/
-		begin try
-
-			EXEC sp_executesql @dropindexcommand
-		-- пишем в лог	 
-			exec www_reindex_stat_log 
-			@objectname = @tablename
-			,@description = @dropindex
-			,@jobday = @wjobday
-			,@seckey = @seckey
-		-- выводим на экран
-			PRINT @dropindex + Cast(GETDATE() as varchar);
-			RAISERROR ('', 0, 1) WITH NOWAIT 
-		-- ставим флаг
-			set @flag = 1
-
-		end try
-		BEGIN CATCH
-			SELECT
-				ERROR_NUMBER() AS ErrorNumber,
-				ERROR_SEVERITY() AS ErrorSeverity,
-				ERROR_STATE() AS ErrorState,
-				ERROR_PROCEDURE() AS ErrorProcedure,
-				ERROR_LINE() AS ErrorLine,
-				ERROR_MESSAGE() AS ErrorMessage,
-				'ошибка при удалении индекса'; 
-
-			set @errmes = 'ошибка при удалении индекса - '+ERROR_MESSAGE()
-			exec www_reindex_stat_log 
-				@objectname = @tablename
-				,@description = @errmes
-				,@jobday = @wjobday 
-				,@seckey = @seckey
-
-			-- выводим на экран
-			PRINT @dropindexerror + Cast(GETDATE() as varchar);
-			-- ставим флаг
-			set @flag = 0
-		END CATCH
-/*------------удаление индекса конец--------------*/
+        -- выводим на экран, если не получилось
+        PRINT @createindexerror + CAST(GETDATE() AS varchar);
+        -- ставим флаг
+        SET @flag = 0
+      END CATCH
+        /*------------создание индекса конец--------------*/
 
 
-			END
-/*
+        /*
+        
+        шаг 2 конец
+        
+        */
 
-шаг 3 конец
+        /*
+        
+        шаг 3
+        
+        */
+        -- если предыдущее действие завершилось успешно,то делаем следующий шаг
+        IF (@flag = 1)
+        BEGIN
 
-*/
+        /*------------удаление индекса начало--------------*/
+        BEGIN TRY
+
+          EXEC sp_executesql @dropindexcommand
+          -- пишем в лог	 
+          EXEC www_reindex_stat_log @objectname = @tablename,
+                                    @description = @dropindex,
+                                    @jobday = @wjobday,
+                                    @seckey = @seckey
+          -- выводим на экран
+          PRINT @dropindex + CAST(GETDATE() AS varchar);
+          RAISERROR ('', 0, 1) WITH NOWAIT
+          -- ставим флаг
+          SET @flag = 1
+
+        END TRY
+        BEGIN CATCH
+          SELECT
+            ERROR_NUMBER() AS ErrorNumber,
+            ERROR_SEVERITY() AS ErrorSeverity,
+            ERROR_STATE() AS ErrorState,
+            ERROR_PROCEDURE() AS ErrorProcedure,
+            ERROR_LINE() AS ErrorLine,
+            ERROR_MESSAGE() AS ErrorMessage,
+            'ошибка при удалении индекса';
+
+          SET @errmes = 'ошибка при удалении индекса - ' + ERROR_MESSAGE()
+          EXEC www_reindex_stat_log @objectname = @tablename,
+                                    @description = @errmes,
+                                    @jobday = @wjobday,
+                                    @seckey = @seckey
+
+          -- выводим на экран
+          PRINT @dropindexerror + CAST(GETDATE() AS varchar);
+          -- ставим флаг
+          SET @flag = 0
+        END CATCH
+        /*------------удаление индекса конец--------------*/
 
 
-/*
+        END
+        /*
+        
+        шаг 3 конец
+        
+        */
 
-шаг 4
 
-*/
-		-- если предыдущее действие завершилось успешно,то делаем следующий шаг
-			if (@flag = 1)
-			BEGIN
+        /*
+        
+        шаг 4
+        
+        */
+        -- если предыдущее действие завершилось успешно,то делаем следующий шаг
+        IF (@flag = 1)
+        BEGIN
 
-		-- пишем инфу о индексах после проведения операции
-				begin try
-					exec www_reindex_stat_index_all_log
-					@objectname = @tablename
-					,@jobday = @wjobday
-					,@status = 'after'
-					,@dbname = @dbname	
-					,@seckey = @seckey
+        -- пишем инфу о индексах после проведения операции
+        BEGIN TRY
+          EXEC www_reindex_stat_index_all_log @objectname = @tablename,
+                                              @jobday = @wjobday,
+                                              @status = 'after',
+                                              @dbname = @dbname,
+                                              @seckey = @seckey
 
-				set @flag = 1
-				end try
-				begin catch
-					SELECT
-						ERROR_NUMBER() AS ErrorNumber,
-						ERROR_SEVERITY() AS ErrorSeverity,
-						ERROR_STATE() AS ErrorState,
-						ERROR_PROCEDURE() AS ErrorProcedure,
-						ERROR_LINE() AS ErrorLine,
-						ERROR_MESSAGE() AS ErrorMessage,
-						'шаг 4 ошибка вставки данных в таблицы лога';
+          SET @flag = 1
+        END TRY
+        BEGIN CATCH
+          SELECT
+            ERROR_NUMBER() AS ErrorNumber,
+            ERROR_SEVERITY() AS ErrorSeverity,
+            ERROR_STATE() AS ErrorState,
+            ERROR_PROCEDURE() AS ErrorProcedure,
+            ERROR_LINE() AS ErrorLine,
+            ERROR_MESSAGE() AS ErrorMessage,
+            'шаг 4 ошибка вставки данных в таблицы лога';
 
-					set @errmes = 'шаг 4 ошибка вставки данных в таблицы лога - '+ERROR_MESSAGE()
-					exec www_reindex_stat_log 
-						@objectname = @tablename
-						,@description = @errmes
-						,@jobday = @wjobday 
-						,@seckey = @seckey
+          SET @errmes = 'шаг 4 ошибка вставки данных в таблицы лога - ' + ERROR_MESSAGE()
+          EXEC www_reindex_stat_log @objectname = @tablename,
+                                    @description = @errmes,
+                                    @jobday = @wjobday,
+                                    @seckey = @seckey
 
-				set @flag = 0
-				end catch
-				
-			END
+          SET @flag = 0
+        END CATCH
 
-			if (@flag = 1)
-				BEGIN				
-					SELECT t1.[index_id]
-						  ,t1.[index_type_desc]
-						  ,t1.[avg_fragmentation_in_percent] 
-						  ,t2.[avg_fragmentation_in_percent]
-						  ,t1.[avg_fragmentation_in_percent] -t2.[avg_fragmentation_in_percent] as [profit]		     
-					FROM [ax_molniya_test].[dbo].[www_reindex_stat_index_all] t1
-					full outer join [www_reindex_stat_index_all] t2 on t1.index_id = t2.index_id
-					where t1.objectname=@tablename 
-					and t1.seckey = @seckey
-					and t1.status = 'before' 
-					and t2.status = 'after' 
-					and t2.objectname=@tablename
-					and t2.seckey = @seckey
+        END
 
-				END
-/*
+        IF (@flag = 1)
+        BEGIN
+          SELECT
+            t1.[index_id],
+            t1.[index_type_desc],
+            t1.[avg_fragmentation_in_percent],
+            t2.[avg_fragmentation_in_percent],
+            t1.[avg_fragmentation_in_percent] - t2.[avg_fragmentation_in_percent] AS [profit]
+          FROM [ax_molniya_test].[dbo].[www_reindex_stat_index_all] t1
+          FULL OUTER JOIN [www_reindex_stat_index_all] t2
+            ON t1.index_id = t2.index_id
+          WHERE t1.objectname = @tablename
+          AND t1.seckey = @seckey
+          AND t1.status = 'before'
+          AND t2.status = 'after'
+          AND t2.objectname = @tablename
+          AND t2.seckey = @seckey
 
-шаг 4 конец
+        END
+      /*
+      
+      шаг 4 конец
+      
+      */
 
-*/
-
-			-- конец бегина с параметром ридонли
-			END;
-		-- конец бегина с проверкой пароля
-		END;
-	-- конец первого бегина
-	END;
+      -- конец бегина с параметром ридонли
+      END;
+    -- конец бегина с проверкой пароля
+    END;
+  -- конец первого бегина
+  END;
 
 -- конец процедуры
 END
-
