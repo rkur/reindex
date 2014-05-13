@@ -12,7 +12,11 @@ GO
 -- Version: 0.4
 -- =============================================
 ALTER PROCEDURE [dbo].[www_reindex_PRODTABLE] 
-	-- Add the parameters for the stored procedure here
+-- Add the parameters for the stored procedure here
+
+-- если readonly = 0 (значение по- умолчанию), тогда выполняется вся работа скрипта)
+-- если readonly = 1, тогда предоставится информация о состоянии индексов на таблицу и реиндекс не будет выполнен
+@readonly bit = 0
 
 AS
 BEGIN
@@ -69,7 +73,7 @@ set @seckey = @wjobday+@d+@c
 -- имя базы данных
 set @dbname = 'ax_molniya_test'
 -- имя таблицы
-set @tablename = 'PURCHTABLE'
+set @tablename = 'INVENTSUM'
 -- имя индекса
 set @indexname = 'I_506ACCOUNTDATEIDX'
 -- имя задания
@@ -103,14 +107,35 @@ BEGIN
 END
 ELSE
 BEGIN
-	print 'Дата проведения реиндекса '+ @wjobday
-	print '--------------------------------------------------'
-	print ''	
-	print 'Имя базы данных-> '+@dbname
-	print 'Имя индекса ->'+ @indexname
-	print 'Имя таблицы ->'+@tablename
-	print ''
-	print '--------------------------------------------------'
+
+	IF(@readonly = 1)
+	BEGIN
+		print 'Дата проведения операция '+ @wjobday
+		print '--------------------------------------------------'
+		print ''	
+		print 'Имя базы данных-> '+@dbname
+		print 'Имя индекса ->'+ @indexname
+		print 'Имя таблицы ->'+@tablename
+		print ''
+		print '--------------------------------------------------'
+
+		-- смотрим статистику по индексам таблицы
+		exec www_reindex_stat_index_all_log
+		@objectname = @tablename		
+		,@dbname = @dbname		
+		,@readonly = @readonly
+
+	END
+	ELSE
+	BEGIN
+		print 'Дата проведения реиндекса '+ @wjobday
+		print '--------------------------------------------------'
+		print ''	
+		print 'Имя базы данных-> '+@dbname
+		print 'Имя индекса ->'+ @indexname
+		print 'Имя таблицы ->'+@tablename
+		print ''
+		print '--------------------------------------------------'
 
 /*
 
@@ -340,8 +365,10 @@ BEGIN
 
 */
 
--- конец первого бегина
-END;
+		-- конец бегина с параметром ридонли
+		END;
+	-- конец первого бегина
+	END;
 
 -- конец процедуры
 END
