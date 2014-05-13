@@ -1,23 +1,23 @@
 reindex
 =======
 
-//tablelist
+\\tablelist
 
-  //list A
-  @dbo.CustInvoiceJour
+  \\ list A
+  @dbo.CustInvoiceJour 
   @dbo.SalesTable
   @dbo.CustTrans
   @dbo.CustTransOpen
   @dbo.InventSum
   
-  // list B	
+  \\ list B	
   @dbo.VendPackingSlipJour
   @dbo.VendPackingSlipTrans
   @dbo.VendInvoiceJour
   @dbo.VendInvoiceTrans
 
 
-//preparation
+\\preparation
 
   create table www_reindex_stat
   create table www_reindex_stat_index_all_log
@@ -33,7 +33,7 @@ reindex
   create www_reindex_*
   create www_reindex_*
 
-// run
+\\ run
 
   exec www_reindex_InventSum 
   exec www_reindex_SalesTable
@@ -45,9 +45,10 @@ reindex
   exec www_reindex_
   exec www_reindex_
   
-// log
+\\ log
+
   use ax_molniya
   GO
   select * from www_reindex_stat
-    select * from www_reindex_stat_index_all
+  select * from www_reindex_stat_index_all
   
