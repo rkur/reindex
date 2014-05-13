@@ -1,5 +1,6 @@
-USE [ax_molniya]
+USE [ax_molniya_test]
 GO
+/****** Объект:  StoredProcedure [dbo].[www_reindex_stat_log]    Дата сценария: 05/13/2014 13:20:38 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -7,13 +8,14 @@ GO
 -- =============================================
 -- Author:		Ruslan Kurianov
 -- Create date: 2014-05-06
--- Description:	Логирование действий во время реиндекса
+-- Description:	
 -- =============================================
 CREATE PROCEDURE [dbo].[www_reindex_stat_log] 
 	-- Add the parameters for the stored procedure here
 @objectname nvarchar(128)
 ,@description nvarchar(256)
 ,@jobday nvarchar(8)
+,@seckey nvarchar(12)
 
 AS
 BEGIN
@@ -23,7 +25,7 @@ BEGIN
 
     -- Insert statements for procedure here
 
-  insert into dbo.www_reindex_stat([objectname],[description],[jobday])
-  values(@objectname,@description,@jobday)
+insert into dbo.www_reindex_stat([objectname],[description],[jobday],[seckey])
+values(@objectname,@description,@jobday,@seckey)
  
 END
