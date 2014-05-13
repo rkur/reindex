@@ -1,5 +1,6 @@
-USE [ax_molniya]
+USE [ax_molniya_test]
 GO
+/****** Объект:  StoredProcedure [dbo].[www_reindex_stat_index_all_log]    Дата сценария: 05/13/2014 13:20:13 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -15,6 +16,7 @@ CREATE PROCEDURE [dbo].[www_reindex_stat_index_all_log]
 ,@jobday nvarchar(8)
 ,@status nvarchar(10)
 ,@dbname nvarchar(64)
+,@seckey nvarchar(12)
 
 AS
 BEGIN
@@ -46,7 +48,8 @@ insert into www_reindex_stat_index_all(
 	[forwarded_record_count] ,	
 	[jobday],
 	[objectname],
-	[status]
+	[status],
+	[seckey]
 )
 SELECT  [database_id],
 	[object_id],
@@ -70,7 +73,8 @@ SELECT  [database_id],
 	[forwarded_record_count] ,	
 	@jobday as [jobday],
 	@objectname as [objectname],
-	@status as [status]
+	@status as [status],
+	@seckey as [seckey]
 FROM sys.dm_db_index_physical_stats(DB_ID(@dbname), OBJECT_ID(@objectname), NULL, NULL , 'LIMITED');
 
  
