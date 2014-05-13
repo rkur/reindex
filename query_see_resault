@@ -3,8 +3,8 @@ declare @tablename  nvarchar(128)
 
 set @tablename = 'PURCHTABLE'
 set @seckey = (select max(seckey) from www_reindex_stat
-
 where objectname =@tablename)
+
 -- see log
 select * from www_reindex_stat
 where objectname = @tablename and seckey = @seckey
@@ -12,17 +12,17 @@ where objectname = @tablename and seckey = @seckey
 select status,* from www_reindex_stat_index_all
 where objectname = @tablename and seckey = @seckey 
 -- see profit
-					SELECT t1.[index_id]
-						  ,t1.[index_type_desc]
-						  ,t1.[avg_fragmentation_in_percent] 
-						  ,t2.[avg_fragmentation_in_percent]
-						  ,t1.[avg_fragmentation_in_percent] -t2.[avg_fragmentation_in_percent] as [profit]		     
-					FROM [ax_molniya_test].[dbo].[www_reindex_stat_index_all] t1
-					full outer join [www_reindex_stat_index_all] t2 on t1.index_id = t2.index_id
-					where t1.objectname=@tablename 
-					and t1.seckey = @seckey
-					and t1.status = 'before' 
-					and t2.status = 'after' 
-					and t2.objectname=@tablename
-					and t2.seckey = @seckey
+SELECT t1.[index_id]
+	  ,t1.[index_type_desc]
+	  ,t1.[avg_fragmentation_in_percent] 
+	  ,t2.[avg_fragmentation_in_percent]
+	  ,t1.[avg_fragmentation_in_percent] -t2.[avg_fragmentation_in_percent] as [profit]		     
+FROM [ax_molniya_test].[dbo].[www_reindex_stat_index_all] t1
+full outer join [www_reindex_stat_index_all] t2 on t1.index_id = t2.index_id
+where t1.objectname=@tablename 
+and t1.seckey = @seckey
+and t1.status = 'before' 
+and t2.status = 'after' 
+and t2.objectname=@tablename
+and t2.seckey = @seckey
 					
