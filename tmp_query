@@ -16,7 +16,11 @@ ALTER PROCEDURE [dbo].[www_reindex_PRODTABLE]
 
 -- если readonly = 0 (значение по- умолчанию), тогда выполняется вся работа скрипта)
 -- если readonly = 1, тогда предоставится информация о состоянии индексов на таблицу и реиндекс не будет выполнен
-@readonly bit = 0
+@readonly bit = 0,
+
+-- защита от случайного запуска
+@password nvarchar(max) = ''
+
 
 AS
 BEGIN
@@ -26,7 +30,9 @@ BEGIN
 
 -- дата выполнения реиндекс в формате ггггммдд
 declare @wjobday nvarchar(8)
-
+-- hash password
+declare @adminhash varbinary 
+declare @hashpassword varbinary
 -- ключ для выборки данных
 declare @seckey nvarchar(12)
 -- текущее время чч:мм
@@ -50,7 +56,9 @@ declare @indexname nvarchar(256)
 declare @createindexcommand nvarchar(MAX)
 declare @dropindexcommand nvarchar(MAX)
 declare @errmes nvarchar(512)
-
+-- получаем соль пароля
+set @password = CONVERT(nvarchar,@password);
+set @hashpassword = (SELECT HashBytes('MD5', @password));
 -- обнуляем флаг
 set @flag = 0
 
@@ -76,6 +84,8 @@ set @dbname = 'ax_molniya_test'
 set @tablename = 'INVENTSUM'
 -- имя индекса
 set @indexname = 'I_506ACCOUNTDATEIDX'
+-- соль пароля на запуск скрипта,НЕ ТРОГАТЬ если не знаешь,что это
+set @adminhash = 0xDA89C0899BDF534641BB41C0A2A23643
 -- имя задания
 --set @jobname = ''
 -- email для уведомления
@@ -107,35 +117,44 @@ BEGIN
 END
 ELSE
 BEGIN
+	IF(@hashpassword <> @adminhash)
+		BEGIN
+			print '--------------------------------------------------'
+			print ''
+			print 'ОШИБКА - введен не правильный пароль - ОШИБКА'
+			print ''
+			print '--------------------------------------------------'
+		END
+		ELSE
+		BEGIN
+			IF(@readonly = 1)
+			BEGIN
+				print 'Дата проведения операция '+ @wjobday
+				print '--------------------------------------------------'
+				print ''	
+				print 'Имя базы данных-> '+@dbname
+				print 'Имя индекса ->'+ @indexname
+				print 'Имя таблицы ->'+@tablename
+				print ''
+				print '--------------------------------------------------'
 
-	IF(@readonly = 1)
-	BEGIN
-		print 'Дата проведения операция '+ @wjobday
-		print '--------------------------------------------------'
-		print ''	
-		print 'Имя базы данных-> '+@dbname
-		print 'Имя индекса ->'+ @indexname
-		print 'Имя таблицы ->'+@tablename
-		print ''
-		print '--------------------------------------------------'
+				-- смотрим статистику по индексам таблицы
+				exec www_reindex_stat_index_all_log
+				@objectname = @tablename		
+				,@dbname = @dbname		
+				,@readonly = @readonly	
 
-		-- смотрим статистику по индексам таблицы
-		exec www_reindex_stat_index_all_log
-		@objectname = @tablename		
-		,@dbname = @dbname		
-		,@readonly = @readonly
-
-	END
-	ELSE
-	BEGIN
-		print 'Дата проведения реиндекса '+ @wjobday
-		print '--------------------------------------------------'
-		print ''	
-		print 'Имя базы данных-> '+@dbname
-		print 'Имя индекса ->'+ @indexname
-		print 'Имя таблицы ->'+@tablename
-		print ''
-		print '--------------------------------------------------'
+			END
+			ELSE
+			BEGIN
+				print 'Дата проведения реиндекса '+ @wjobday
+				print '--------------------------------------------------'
+				print ''	
+				print 'Имя базы данных-> '+@dbname
+				print 'Имя индекса ->'+ @indexname
+				print 'Имя таблицы ->'+@tablename
+				print ''
+				print '--------------------------------------------------'
 
 /*
 
@@ -365,7 +384,9 @@ BEGIN
 
 */
 
-		-- конец бегина с параметром ридонли
+			-- конец бегина с параметром ридонли
+			END;
+		-- конец бегина с проверкой пароля
 		END;
 	-- конец первого бегина
 	END;
