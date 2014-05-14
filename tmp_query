@@ -44,7 +44,8 @@ BEGIN
 
   -- флаг выполнения задания
   DECLARE @flag bit
-
+  DECLARE @email nvarchar(512)
+  DECLARE @at nvarchar(500);
   DECLARE @createindexstart nvarchar(128)
   DECLARE @createindexerror nvarchar(128)
   DECLARE @createindexstop nvarchar(128)
@@ -91,7 +92,7 @@ BEGIN
   -- имя задания
   --set @jobname = ''
   -- email для уведомления
-  -- set @email = ''
+  SET @email = 'event.messages@ctmol.ru;it.sysadmin.admin@sparural.ru;m.egunov@ctmol.ru;it.sysadmin.dba1@sparural.ru'
 
   /*
   
@@ -376,6 +377,51 @@ BEGIN
           AND t2.seckey = @seckey
 
         END
+
+		IF (@flag = 1)
+		BEGIN
+			BEGIN TRY			
+				set @at = 'задание по реиндексу выполнено'+@tablename+ Cast(GETDATE() as varchar);
+				EXECUTE msdb.dbo.sp_send_dbmail
+				   @profile_name  = 'atrans',        
+				   @recipients  = @email, 
+				   @subject  = @tablename,
+				   @body = @at
+			END TRY
+			BEGIN CATCH
+			  SELECT
+				ERROR_NUMBER() AS ErrorNumber,
+				ERROR_SEVERITY() AS ErrorSeverity,
+				ERROR_STATE() AS ErrorState,
+				ERROR_PROCEDURE() AS ErrorProcedure,
+				ERROR_LINE() AS ErrorLine,
+				ERROR_MESSAGE() AS ErrorMessage,
+				'ошибка отправки email';
+			END CATCH
+
+		END
+		ELSE
+		BEGIN	
+			BEGIN TRY		
+				set @at = 'Ошибка - задание по реиндексу '+@tablename+ Cast(GETDATE() as varchar);
+				EXECUTE msdb.dbo.sp_send_dbmail
+				   @profile_name  = 'atrans',        
+				   @recipients  = @email, 
+				   @subject  = @tablename,
+				   @body = @at
+			END TRY
+			BEGIN CATCH
+				  SELECT
+					ERROR_NUMBER() AS ErrorNumber,
+					ERROR_SEVERITY() AS ErrorSeverity,
+					ERROR_STATE() AS ErrorState,
+					ERROR_PROCEDURE() AS ErrorProcedure,
+					ERROR_LINE() AS ErrorLine,
+					ERROR_MESSAGE() AS ErrorMessage,
+					'ошибка отправки email';
+			END CATCH
+		END
+
       /*
       
       шаг 4 конец
