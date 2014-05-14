@@ -57,6 +57,7 @@ BEGIN
   DECLARE @createindexcommand nvarchar(max)
   DECLARE @dropindexcommand nvarchar(max)
   DECLARE @errmes nvarchar(512)
+  DECLARE @wrongpassalert nvarchar(256)
   -- получаем соль пароля
   SET @password = CONVERT(nvarchar, @password);
   SET @hashpassword = (SELECT
@@ -131,6 +132,13 @@ BEGIN
       PRINT 'ОШИБКА - введен не правильный пароль - ОШИБКА'
       PRINT ''
       PRINT '--------------------------------------------------'
+		
+	  set @wrongpassalert = 'ОШИБКА - введен не правильный пароль - ОШИБКА, пользователь '+SUSER_SNAME()
+      EXEC www_reindex_stat_log @objectname = @tablename,
+                                @description = @wrongpassalert,
+                                @jobday = @wjobday,
+                                @seckey = @seckey
+
     END
     ELSE
     BEGIN
