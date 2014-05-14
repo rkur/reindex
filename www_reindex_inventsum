@@ -1,6 +1,6 @@
 USE [ax_molniya]
 GO
-/****** Объект:  StoredProcedure [dbo].[www_reindex_INVENTSUM]    Дата сценария: 05/14/2014 14:24:58 ******/
+/****** Объект:  StoredProcedure [dbo].[www_reindex_INVENTSUM]    Дата сценария: 05/14/2014 17:33:24 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -33,6 +33,9 @@ BEGIN
   -- interfering with SELECT statements.
   SET NOCOUNT ON;
 
+  DECLARE @ErrorMessage NVARCHAR(4000);
+  DECLARE @ErrorSeverity INT;
+  DECLARE @ErrorState INT;
   -- дата выполнения реиндекс в формате ггггммдд
   DECLARE @wjobday nvarchar(8)
   -- hash password
@@ -88,7 +91,7 @@ BEGIN
   */
 
   -- имя базы данных
-  SET @dbname = 'ax_molniya_test'
+  SET @dbname = 'ax_molniya'
   -- имя таблицы
   SET @tablename = 'INVENTSUM'
   -- имя индекса
@@ -126,8 +129,19 @@ BEGIN
     WHERE [name] = @dbname)
     = 0)
   BEGIN
-    PRINT 'указанной бд [' + @dbname + '] на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_' + @tablename + ']'
-    PRINT ' '
+	IF (@displayoff = 0)
+    BEGIN
+		PRINT 'указанной бд [' + @dbname + '] на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_' + @tablename + ']'
+		PRINT ' '	
+	END
+
+    SELECT 
+        @ErrorMessage = 'указанной бд [' + @dbname + '] на сервере не существует, проверь секцию #CONFIG в процедуре [www_reindex_' + @tablename + ']',
+        @ErrorSeverity = 16,
+        @ErrorState = 100;			
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
+	
   END
   ELSE
   BEGIN
@@ -145,8 +159,7 @@ BEGIN
       EXEC www_reindex_stat_log @objectname = @tablename,
                                 @description = @wrongpassalert,
                                 @jobday = @wjobday,
-                                @seckey = @seckey
-
+                                @seckey = @seckey		
     END
     ELSE
     BEGIN
