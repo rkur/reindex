@@ -1,11 +1,17 @@
 use ax_molniya
 GO
+------------------------------------
 declare @seckey nvarchar(12)
 declare @tablename  nvarchar(128)
-
+------------------------------------
 set @tablename = 'SalesTable'
 set @seckey = (select max(seckey) from www_reindex_stat
 where objectname =@tablename)
+------------------------------------
+
+-- see log all
+select * from www_reindex_stat
+where objectname = @tablename
 
 -- see log
 select * from www_reindex_stat
