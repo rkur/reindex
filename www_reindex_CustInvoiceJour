@@ -1,6 +1,6 @@
 USE [ax_molniya]
 GO
-/****** Объект:  StoredProcedure [dbo].[www_reindex_CustInvoiceJour]    Дата сценария: 05/14/2014 11:12:08 ******/
+/****** Объект:  StoredProcedure [dbo].[www_reindex_CustInvoiceJour]    Дата сценария: 05/14/2014 11:16:53 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
