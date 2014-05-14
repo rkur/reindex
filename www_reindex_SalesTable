@@ -89,7 +89,7 @@ BEGIN
   -- имя индекса
   SET @indexname = 'temp_index'
   -- соль пароля на запуск скрипта,НЕ ТРОГАТЬ если не знаешь,что это
-  SET @adminhash = 0xDA89C0899BDF534641BB41C0A2A23643
+  SET @adminhash = 0x385B43E3833EA9639158D535A765196D
   -- имя задания
   --set @jobname = ''
   -- email для уведомления
