@@ -1,6 +1,6 @@
 USE [ax_molniya]
 GO
-/****** Объект:  StoredProcedure [dbo].[www_reindex_INVENTSUM]    Дата сценария: 05/14/2014 17:33:24 ******/
+/****** Объект:  StoredProcedure [dbo].[www_reindex_INVENTSUM]    Дата сценария: 05/15/2014 11:53:41 ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
@@ -8,7 +8,7 @@ GO
 -- =============================================
 -- Author: Ruslan Kurianov
 -- Create date: 2014-05-014
--- Description: Реиндекс таблицы INVENTSUM
+-- Description: Реиндекс таблицы Inventsum
 -- Version: 0.4.1
 -- =============================================
 CREATE PROCEDURE [dbo].[www_reindex_INVENTSUM]
@@ -33,6 +33,7 @@ BEGIN
   -- interfering with SELECT statements.
   SET NOCOUNT ON;
 
+  
   DECLARE @ErrorMessage NVARCHAR(4000);
   DECLARE @ErrorSeverity INT;
   DECLARE @ErrorState INT;
@@ -93,7 +94,7 @@ BEGIN
   -- имя базы данных
   SET @dbname = 'ax_molniya'
   -- имя таблицы
-  SET @tablename = 'INVENTSUM'
+  SET @tablename = 'Inventsum'
   -- имя индекса
   SET @indexname = 'temp_index'
   -- соль пароля на запуск скрипта,НЕ ТРОГАТЬ если не знаешь,что это
@@ -159,7 +160,14 @@ BEGIN
       EXEC www_reindex_stat_log @objectname = @tablename,
                                 @description = @wrongpassalert,
                                 @jobday = @wjobday,
-                                @seckey = @seckey		
+                                @seckey = @seckey	
+
+	    SELECT 
+        @ErrorMessage = @wrongpassalert,
+        @ErrorSeverity = 16,
+        @ErrorState = 100;			
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT	
     END
     ELSE
     BEGIN
@@ -236,6 +244,13 @@ BEGIN
                                   @jobday = @wjobday,
                                   @seckey = @seckey
 
+	    SELECT 
+        @ErrorMessage = @errmes,
+        @ErrorSeverity = 16,
+        @ErrorState = 100;			
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
+
       END CATCH
       -----------------------------------------------------
 
@@ -283,6 +298,13 @@ BEGIN
                                   @description = @errmes,
                                   @jobday = @wjobday,
                                   @seckey = @seckey
+SELECT 
+        @ErrorMessage = @errmes,
+        @ErrorSeverity = 16,
+        @ErrorState = 100;			
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
+
         IF (@displayoff = 0)
         BEGIN
           -- выводим на экран, если не получилось
@@ -344,6 +366,13 @@ BEGIN
                                     @jobday = @wjobday,
                                     @seckey = @seckey
 
+SELECT 
+        @ErrorMessage = @errmes,
+        @ErrorSeverity = 16,
+        @ErrorState = 100;		
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
+
           IF (@displayoff = 0)
           BEGIN
             -- выводим на экран
@@ -398,6 +427,14 @@ BEGIN
                                     @jobday = @wjobday,
                                     @seckey = @seckey
 
+
+SELECT 
+        @ErrorMessage = @errmes,
+        @ErrorSeverity = 16,
+        @ErrorState = 100;		
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
+
           SET @flag = 0
         END CATCH
 
@@ -444,6 +481,14 @@ BEGIN
             ERROR_LINE() AS ErrorLine,
             ERROR_MESSAGE() AS ErrorMessage,
             'ошибка отправки email';
+
+
+SELECT 
+        @ErrorMessage = 'ошибка отправки email',
+        @ErrorSeverity = 16,
+        @ErrorState = 100;		
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
         END CATCH
 
         END
@@ -465,6 +510,14 @@ BEGIN
             ERROR_LINE() AS ErrorLine,
             ERROR_MESSAGE() AS ErrorMessage,
             'ошибка отправки email';
+
+SELECT 
+        @ErrorMessage = 'ошибка отправки email',
+        @ErrorSeverity = 16,
+        @ErrorState = 100;		
+
+	RAISERROR (@ErrorMessage,@ErrorSeverity,@ErrorState) WITH NOWAIT
+
         END CATCH
         END
 
