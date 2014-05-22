@@ -1,15 +1,28 @@
 use ax_molniya
-GO
-------------------------------------
+-------------------------------
 declare @seckey nvarchar(12)
 declare @tablename  nvarchar(128)
+declare @jobday nvarchar(8)
 ------------------------------------
---set @tablename = 'SalesTable';
-set @tablename = 'Inventsum'
+--set @tablename = 'CustTrans'
+--set @tablename = 'CustTransOpen'
 --set @tablename = 'CustInvoiceJour'
+--set @tablename = 'Inventsum'
+--set @tablename = 'INVENTJOURNALTABLE'
+--set @tablename = 'SalesTable'
+--set @tablename = 'PURCHPARMSUBTABLE'
+--set @tablename = 'PURCHTABLE'
+--set @tablename = 'PURCHLINE'
+--set @tablename = 'PURCHPARMUPDATE'
+--set @tablename = 'VendInvoiceJour'
+--set @tablename = 'VendInvoiceTrans'
+--set @tablename = 'VendPackingSlipTrans'
+set @tablename = 'VendPackingSlipJour'
+--------------------------------------
 set @seckey = (select max(seckey) from www_reindex_stat
 where objectname =@tablename)
-------------------------------------
+set @jobday = (select max(jobday) from www_reindex_stat)
+--------------------------------------
 
 -- see log all
 select 'весь журнал лога для таблицы '+@tablename [описание]
@@ -41,3 +54,10 @@ and t1.status = 'before'
 and t2.status = 'after' 
 and t2.objectname=@tablename
 and t2.seckey = @seckey
+
+
+-- see log all day
+select 'журнал лога, информация о самом последнем запуске ('+@seckey+')' [описание]
+select * from www_reindex_stat
+where jobday = @jobday
+order by objectname,createdate
