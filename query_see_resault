@@ -1,7 +1,7 @@
 use ax_molniya
 -------------------------------
 declare @seckey nvarchar(12)
-declare @tablename  nvarchar(128)
+declare @tablename nvarchar(128)
 declare @jobday nvarchar(8)
 ------------------------------------
 --set @tablename = 'CustTrans'
@@ -11,51 +11,47 @@ declare @jobday nvarchar(8)
 --set @tablename = 'INVENTJOURNALTABLE'
 --set @tablename = 'SalesTable'
 --set @tablename = 'PURCHPARMSUBTABLE'
---set @tablename = 'PURCHTABLE'
+set @tablename = 'PURCHTABLE'
 --set @tablename = 'PURCHLINE'
 --set @tablename = 'PURCHPARMUPDATE'
 --set @tablename = 'VendInvoiceJour'
 --set @tablename = 'VendInvoiceTrans'
 --set @tablename = 'VendPackingSlipTrans'
-set @tablename = 'VendPackingSlipJour'
+--set @tablename = 'VendPackingSlipJour'
 --------------------------------------
 set @seckey = (select max(seckey) from www_reindex_stat
 where objectname =@tablename)
 set @jobday = (select max(jobday) from www_reindex_stat)
 --------------------------------------
-
 -- see log all
 select 'весь журнал лога для таблицы '+@tablename [описание]
 select * from www_reindex_stat
 where objectname = @tablename
-
+order by createdate desc
 -- see log
 select 'журнал лога для таблицы '+@tablename+', информация о самом последнем запуске ('+@seckey+')' [описание]
 select * from www_reindex_stat
 where objectname = @tablename and seckey = @seckey
-
+order by createdate desc
 -- see index stat
-select 'cостояние индексов таблицы '+@tablename+' до [status=before] [status=after] проведения реиндекса  ' [описание]
+select 'cостояние индексов таблицы '+@tablename+' до [status=before] [status=after] проведения реиндекса ' [описание]
 select status,* from www_reindex_stat_index_all
-where objectname = @tablename and seckey = @seckey 
-
+where objectname = @tablename and seckey = @seckey
 -- see profit
-select 'смотрим эффект от реиндекса,сравниваем состояние индексов таблицы '+@tablename+' до [before] и после [after] проведения реиндекса  ' [описание]
+select 'смотрим эффект от реиндекса,сравниваем состояние индексов таблицы '+@tablename+' до [before] и после [after] проведения реиндекса ' [описание]
 SELECT t1.[index_id]
-	  ,t1.[index_type_desc]
-	  ,t1.[avg_fragmentation_in_percent] as [before]
-	  ,t2.[avg_fragmentation_in_percent] as [after]
-	  ,t1.[avg_fragmentation_in_percent] -t2.[avg_fragmentation_in_percent] as [profit]		     
+,t1.[index_type_desc]
+,t1.[avg_fragmentation_in_percent] as [before]
+,t2.[avg_fragmentation_in_percent] as [after]
+,t1.[avg_fragmentation_in_percent] -t2.[avg_fragmentation_in_percent] as [profit]
 FROM [dbo].[www_reindex_stat_index_all] t1
 join [www_reindex_stat_index_all] t2 on t1.index_id = t2.index_id
-where t1.objectname=@tablename 
+where t1.objectname=@tablename
 and t1.seckey = @seckey
-and t1.status = 'before' 
-and t2.status = 'after' 
+and t1.status = 'before'
+and t2.status = 'after'
 and t2.objectname=@tablename
 and t2.seckey = @seckey
-
-
 -- see log all day
 select 'журнал лога, информация о самом последнем запуске ('+@seckey+')' [описание]
 select * from www_reindex_stat
